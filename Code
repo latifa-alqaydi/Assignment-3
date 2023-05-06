@@ -1,0 +1,270 @@
+# Import required libraries
+import pickle  # module for object serialization
+import tkinter as tk  # module for GUI development
+from tkinter import messagebox  # module for showing dialog boxes
+
+
+class Person:
+    # Create a class named Person
+    def __init__(self, name, id_number, date_of_birth):
+        # Define a constructor for the Person class
+        self.name = name
+        self.id_number = id_number
+        self.date_of_birth = date_of_birth
+
+
+class Employee(Person):
+    # Create a class named Employee which is a subclass of Person
+    def __init__(self, name, id_number, date_of_birth, department, job_title, basic_salary):
+        # Define a constructor for the Employee class
+        super().__init__(name, id_number, date_of_birth)
+        self.department = department
+        self.job_title = job_title
+        self.basic_salary = basic_salary
+
+    def monthly_salary(self):
+        # Method to calculate monthly salary of an employee
+        return self.basic_salary
+
+    def display_info(self):
+        # Method to display basic information about an employee
+        return f"Name: {self.name}\nID: {self.id_number}\nDOB: {self.date_of_birth}\nDepartment: {self.department}\nJob Title: {self.job_title}\nBasic Salary: {self.basic_salary}"
+
+
+class Manager(Employee):
+    # Create a class named Manager which is a subclass of Employee
+    def __init__(self, name, id_number, date_of_birth, department, job_title, basic_salary):
+        # Define a constructor for the Manager class
+        super().__init__(name, id_number, date_of_birth, department, job_title, basic_salary)
+        self.salespersons = []
+
+    def add_salesperson(self, salesperson):
+        # Method to add salespersons to the salesperson list of a manager
+        self.salespersons.append(salesperson)
+
+    def team_sales(self):
+        # Method to calculate the total sales of a manager's team
+        total = 0
+        for salesperson in self.salespersons:
+            total += salesperson.total_sales()
+        return total
+
+    def display_info(self):
+        # Method to display information about a manager, including team members and total sales
+        salesperson_names = ', '.join([salesperson.name for salesperson in self.salespersons])
+        return f"{super().display_info()}\nTeam Members: {salesperson_names}\nTeam Sales: {self.team_sales()}"
+
+
+class Salesperson(Employee):
+    # Create a class named Salesperson which is a subclass of Employee
+    def __init__(self, name, id_number, date_of_birth, department, job_title, basic_salary, manager=None):
+        # Define a constructor for the Salesperson class
+        super().__init__(name, id_number, date_of_birth, department, job_title, basic_salary)
+        self.cars_sold = []
+        self.sales_commission = 0
+        self.manager = manager
+
+    def total_sales(self):
+        # Method to calculate the total sales made by a salesperson
+        total = 0
+        for sale in self.cars_sold:
+            total += sale['sale_price']
+        return total
+
+    def calculate_commission(self):
+        # Method to calculate the sales commission earned by a salesperson
+        total_commission = 0
+        for sale in self.cars_sold:
+            profit = sale['sale_price'] - sale['car'].price
+            commission = profit * 0.065
+            total_commission += commission
+        return total_commission
+
+    # Define a method to display sales information for a salesperson
+    def display_sales_info(self):
+        # Create a string with the salesperson's name and ID
+        sales_info = f"Sales details for {self.name} (ID: {self.id_number}):"
+        # Iterate through the list of cars sold by the salesperson
+        for sale in self.cars_sold:
+            # Add each car's name, ID, and sale price to the sales information string
+            sales_info += f"\nCar sold: {sale['car'].name} (ID: {sale['car'].id_number}), Sale Price: {sale['sale_price']}"
+        # Return the sales information string
+        return sales_info
+
+    # Define a method to display all information for an employee
+    def display_info(self):
+        # Return a string with the employee's basic information, manager's name, total sales, and sales commission
+        return f"{super().display_info()}\nManager: {self.manager.name}\nTotal Sales: {self.total_sales()}\nSales Commission: {self.calculate_commission()}"
+
+
+# Define a Car class
+class Car:
+    def __init__(self, name, id_number, price, car_type):
+        self.name = name
+        self.id_number = id_number
+        self.price = price
+        self.car_type = car_type
+
+    # Define a method to display information for a car
+    def display_info(self):
+        return f"Name: {self.name}\nID: {self.id_number}\nPrice: {self.price}\nCar Type: {self.car_type}"
+
+
+# Define a function to create sample data for the program
+def initialize_sample_data():
+    # Create objects for a manager and two salespeople
+    susan = Manager("Susan Meyers", 47899, "1975-06-15", "Accounting", "Manager", 37500)
+    joy = Salesperson("Joy Rogers", 81774, "1985-08-23", "Manufacturing", "Salesperson", 24000, susan)
+    mark = Salesperson("Mark Jones", 39119, "1980-11-12", "IT", "Salesperson", 26000, susan)
+    # Add the salespeople to the manager's list of employees
+    susan.add_salesperson(joy)
+    susan.add_salesperson(mark)
+
+    # Create three cars
+    car1 = Car("Jazz VX3", 1, 55000, "Hatchback")
+    car2 = Car("Mark3 SX3", 2, 84000, "Sedan")
+    car3 = Car("Wagoner ZX3", 3, 125000, "SUV")
+
+    # Record sales for the salespeople
+    joy.cars_sold = [{"car": car3, "sale_price": 155000}, {"car": car1, "sale_price": 57800},
+                     {"car": car1, "sale_price": 55000}, {"car": car2, "sale_price": 89000},
+                     {"car": car2, "sale_price": 93000}]
+    mark.cars_sold = [{"car": car1, "sale_price": 58000}, {"car": car1, "sale_price": 58000},
+                      {"car": car3, "sale_price": 158000}, {"car": car3, "sale_price": 158000},
+                      {"car": car3, "sale_price": 158000}]
+
+    # Add commission to the basic salary of each salesperson
+    joy.basic_salary += joy.calculate_commission()
+    mark.basic_salary += mark.calculate_commission()
+
+    # Return lists of employees and cars
+    return [susan, joy, mark], [car1, car2, car3]
+
+
+# Load data from a file using pickle
+def load_data(filename):
+    try:
+        with open(filename, "rb") as file:
+            return pickle.load(file)
+    except FileNotFoundError:
+        return []
+
+
+# Save data to a file using pickle
+def save_data(filename, data):
+    with open(filename, "wb") as file:
+        pickle.dump(data, file)
+
+
+# Display information for an employee with a given ID number
+def display_employee_by_id(id_number, employees):
+    # Convert the ID number to an integer
+    id_number = int(id_number)
+    for employee in employees:
+        # Check if the current employee has the given ID number
+        if employee.id_number == id_number:
+            return employee.display_info()
+    # If no employee is found with the given ID number, return None
+    return None
+
+
+# Display information for a car with a given ID number
+def display_car_by_id(id_number, cars):
+    # Convert the ID number to an integer
+    id_number = int(id_number)
+    for car in cars:
+        # Check if the current car has the given ID number
+        if car.id_number == id_number:
+            return car.display_info()
+    # If no car is found with the given ID number, return None
+    return None
+
+
+# Display sales information for a salesperson with a given ID number
+def display_sales_details_by_id(id_number, employees):
+    # Convert the ID number to an integer
+    id_number = int(id_number)
+    for employee in employees:
+        # Check if the current employee has the given ID number and is a salesperson
+        if employee.id_number == id_number and isinstance(employee, Salesperson):
+            return employee.display_sales_info()
+    # If no salesperson is found with the given ID number, return a message
+    return "Salesperson not found."
+
+
+# Define the main function
+def main():
+    # Initialize sample data for employees and cars
+    employees, cars = initialize_sample_data()
+
+    # Create the GUI using tkinter
+    root = tk.Tk()
+    root.title("Car Sales Management System")
+
+    # Create and place labels for the ID input
+    id_label = tk.Label(root, text="ID")
+    id_label.grid(row=0, column=0)
+
+    id_entry = tk.Entry(root)
+    id_entry.grid(row=0, column=1)
+
+    # Function to display employee details when the button is clicked
+    def display_employee_details():
+        # Get the ID number from the input field
+        id_number = id_entry.get()
+        # Call the display_employee_by_id function to get the employee details
+        employee = display_employee_by_id(id_number, employees)
+        if employee:
+            # If the employee is found, display their details in a message box
+            messagebox.showinfo("Employee Details", str(employee))
+        else:
+            # If the employee is not found, display an error message
+            messagebox.showerror("Error", "Employee not found.")
+
+    # Function to display car details when the button is clicked
+    def display_car_details():
+        # Get the ID number from the input field
+        id_number = id_entry.get()
+        # Call the display_car_by_id function to get the car details
+        car = display_car_by_id(id_number, cars)
+        if car:
+            # If the car is found, display its details in a message box
+            messagebox.showinfo("Car Details", str(car))
+        else:
+            # If the car is not found, display an error message
+            messagebox.showerror("Error", "Car not found.")
+
+    # Function to display sales details when the button is clicked
+    def display_sales_details():
+        # Get the ID number from the input field
+        id_number = id_entry.get()
+        # Call the display_sales_details_by_id function to get the sales details
+        sales_info = display_sales_details_by_id(id_number, employees)
+        if sales_info != "Salesperson not found.":
+            # If the salesperson is found, display their sales details in a message box
+            messagebox.showinfo("Sales Details", sales_info)
+        else:
+            # If the salesperson is not found, display an error message
+            messagebox.showerror("Error", "Salesperson not found.")
+
+    # Create and place buttons for displaying employee, car, and sales details
+    employee_button = tk.Button(root, text="Display Employee Details", command=display_employee_details)
+    employee_button.grid(row=1, column=0)
+
+    car_button = tk.Button(root, text="Display Car Details", command=display_car_details)
+    car_button.grid(row=1, column=1)
+
+    sales_button = tk.Button(root, text="Display Sales Details", command=display_sales_details)
+    sales_button.grid(row=2, column=0, columnspan=2)
+
+    # Run the GUI loop
+    root.mainloop()
+
+    # Save the data to files when the program exits
+    save_data("employees.pkl", employees)
+    save_data("cars.pkl", cars)
+
+
+# If this file is run directly, call the main function
+if __name__ == "__main__":
+    main()
